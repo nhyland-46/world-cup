@@ -218,6 +218,33 @@ const DEFAULTS = {
   q: {"E": 0.67, "G": 0.67, "H": 0.67, "I": 0.67, "J": 0.67, "K": 0.67, "L": 0.67},
 };
 
+const COUNTRY_ABBR = {
+  "Turkey": "TUR",
+  "Paraguay": "PAR",
+  "Scotland": "SCO",
+  "United States": "USA",
+  "Morocco": "MAR",
+  "Australia": "AUS",
+  "Brazil": "BRA",
+  "Haiti": "HTI",
+  "Mexico": "MEX",
+  "South Korea": "KOR",
+  "South Africa": "ZAF",
+  "Czech Republic": "CZE",
+  "Canada": "CAN",
+  "Switzerland": "CHE",
+  "Qatar": "QAT",
+  "Bosnia and Herzegovina": "BIH",
+  "Germany": "GER",
+  "Ecuador": "ECU",
+  "Ivory Coast": "CIV",
+  "Curaçao": "CUW",
+  "Netherlands": "NED",
+  "Japan": "JPN",
+  "Sweden": "SWE",
+  "Tunisia": "TUN",
+};
+
 const LS_KEY = "match74_inputs_v5";
 let state;
 function loadDefaults(){ state = JSON.parse(JSON.stringify(DEFAULTS)); }
@@ -586,7 +613,8 @@ function renderMatrix(oppTeam){
       const cy = rowY[ri].y + rowY[ri].h/2;
       const pctTxt = "";
       ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
-      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - ctx.measureText(pctTxt).width - 8, cy);
+      const abbr = COUNTRY_ABBR[r.name] || r.name.substring(0, 3).toUpperCase();
+      ctx.fillText(withFlag(abbr), mL-8 - ctx.measureText(pctTxt).width - 8, cy);
     }
   });
   // axis captions
