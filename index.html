@@ -46,7 +46,7 @@
   .barrow{ display:grid; grid-template-columns:150px 1fr 56px; align-items:center; gap:10px; height:24px; margin-bottom:5px; }
   .barlabel{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .barfill{ background:var(--bar); height:16px; border-radius:4px; min-width:2px; }
-  .tabs{ display:flex; gap:4px; margin:20px 0 16px; border-bottom:1px solid var(--line); }
+  .tabs{ display:flex; flex-wrap:wrap; gap:4px; margin:20px 0 16px; border-bottom:1px solid var(--line); clear:both; }
   .tabbtn{ background:transparent; color:var(--muted); border:0; border-bottom:2px solid transparent;
     border-radius:0; padding:9px 16px; font:inherit; font-weight:600; cursor:pointer; }
   .tabbtn:hover{ color:var(--text); }
@@ -76,9 +76,16 @@
   .legswatch{ width:14px; height:14px; border-radius:3px; display:inline-block; }
   .legcanvas{ width:16px; height:16px; border-radius:3px; border:1px solid var(--line); }
   .leglabel-strong{ font-weight:700; color:var(--muted); margin-right:2px; }
-  .topbar{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
-  .topbar h1{ margin:0; }
-  .topbar-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .topbar-actions{ float:right; display:flex; align-items:center; gap:8px; margin:2px 0 6px 16px; }
+  .matrixwrap{ position:relative; overflow-x:auto; }
+  @media (max-width:600px){
+    .wrap{ padding:16px 12px 48px; }
+    h1{ font-size:19px; }
+    .tabbtn{ padding:8px 10px; }
+    .barrow{ grid-template-columns:110px 1fr 48px; gap:8px; }
+    input[type=number]{ width:72px; }
+    .slicers{ gap:10px; }
+  }
   .tip{ position:fixed; z-index:20; background:var(--panel2); border:1px solid var(--line);
     color:var(--text); padding:4px 8px; border-radius:6px; font-size:12px;
     pointer-events:none; display:none; white-space:nowrap; }
@@ -88,12 +95,10 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="topbar">
-    <h1>Match 74 — who does Group E's winner play?</h1>
-    <div class="topbar-actions">
-      <span id="saveState" class="small"></span>
-      <button id="shareBtn" type="button">🔗 Share</button>
-    </div>
+  <h1>Match 74 — who does Group E's winner play?</h1>
+  <div class="topbar-actions">
+    <span id="saveState" class="small"></span>
+    <button id="shareBtn" type="button">🔗 Share</button>
   </div>
   <p class="sub">The likely Round-of-32 opponent for the winner of Group E.
     Enter your probabilities in the <b>Inputs</b> tab — get the numbers from the
@@ -115,7 +120,7 @@
       <h2>Matchup matrix</h2>
       <div class="small" style="margin-bottom:8px">Each box's area is the chance of that matchup.
         Columns are the Group E winner; rows are the opponent. Hover for exact values.</div>
-      <div style="position:relative"><canvas id="matrixChart"></canvas></div>
+      <div class="matrixwrap"><canvas id="matrixChart"></canvas></div>
     </div>
   </div>
 
@@ -514,7 +519,7 @@ function renderMatrix(oppTeam){
 
   // canvas sizing (HiDPI crisp)
   const dpr = window.devicePixelRatio || 1;
-  const cssW = canvas.parentElement.clientWidth || 600;
+  const cssW = Math.max(canvas.parentElement.clientWidth || 600, 460); // keep legible; scrolls on mobile
   const cssH = 520;
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
