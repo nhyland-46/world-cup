@@ -569,6 +569,7 @@ function renderMatrix(oppTeam){
 
   // --- Step 2: let the browser lay out the label div, then read the canvas's remaining width ---
   // Reading offsetWidth forces a synchronous reflow, giving us the exact flex-computed width.
+  const ctx = canvas.getContext("2d");
   canvas.style.width = ""; // clear any previous inline width so flex:1 can compute freely
   const cssW = Math.max(canvas.offsetWidth, 180);
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
