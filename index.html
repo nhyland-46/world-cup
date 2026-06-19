@@ -77,7 +77,8 @@
   .legcanvas{ width:16px; height:16px; border-radius:3px; border:1px solid var(--line); }
   .leglabel-strong{ font-weight:700; color:var(--muted); margin-right:2px; }
   .topbar-actions{ float:right; display:flex; align-items:center; gap:8px; margin:2px 0 6px 16px; }
-  .matrixwrap{ position:relative; overflow-x:auto; }
+  .matrixwrap{ display:flex; align-items:flex-start; overflow-x:auto; }
+  #matrixRowLabels{ flex-shrink:0; display:block; }
   @media (max-width:600px){
     .wrap{ padding:16px 12px 48px; }
     h1{ font-size:19px; }
@@ -120,7 +121,10 @@
       <h2>Matchup matrix</h2>
       <div class="small" style="margin-bottom:8px">Each box's area is the chance of that matchup.
         Columns are the Group E winner; rows are the opponent. Hover for exact values.</div>
-      <div class="matrixwrap"><canvas id="matrixChart"></canvas></div>
+      <div class="matrixwrap">
+        <canvas id="matrixRowLabels"></canvas>
+        <canvas id="matrixChart"></canvas>
+      </div>
     </div>
   </div>
 
@@ -517,50 +521,75 @@ function renderMatrix(oppTeam){
   const rsum = rowsData.reduce((s,r) => s+r.p, 0) || 1;
   const rows = rowsData.map(r => ({name: r.name, frac: r.p/rsum, p: r.p}));
 
-  // canvas sizing — measure label widths first so the left margin is exactly as wide as needed
+  const lcanvas = document.getElementById("matrixRowLabels");
   const dpr = window.devicePixelRatio || 1;
-  const containerW = canvas.parentElement.clientWidth || 600;
   const sysFont = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
   const cssH = 520;
   const mT=58, mR=12, mB=14;
-  const ph = cssH - mT - mB; // row heights are independent of mL
+  const ph = cssH - mT - mB;
 
-  // Measure label widths with the DPR transform active so measurements match rendering.
-  // Flag emoji widths are unreliable on mobile canvas, so budget a fixed amount for them.
+  // --- Step 1: measure label widths to determine how wide the label canvas should be ---
+  // Use a temporary ctx on the matrix canvas just for measureText (canvas size doesn't matter here)
   const ctx = canvas.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.font = `12px ${sysFont}`;
-  const FLAG_BUDGET = 20; // px reserved for flag emoji + trailing space
+  const FLAG_BUDGET = 20; // fixed budget for flag emoji (emoji widths unreliable on mobile)
   let maxLabelW = 0;
   rows.forEach(r => {
-    if (r.frac * ph < 11) return; // skip rows too thin to show a label
+    if (r.frac * ph < 11) return;
     const pctTxt = (r.p * 100).toFixed(0) + "%";
-    // layout right-to-left: [8px gap to matrix][pct][8px gap][name][flag budget][4px left pad]
     const w = 4 + FLAG_BUDGET + ctx.measureText(r.name).width + 8 + ctx.measureText(pctTxt).width + 8;
     if (w > maxLabelW) maxLabelW = w;
   });
-  const mL = Math.max(Math.ceil(maxLabelW), 40); // at least 40px even if no rows qualify
+  const mL = Math.max(Math.ceil(maxLabelW), 40);
 
-  // Canvas width: always fits the container; allows scroll only if matrix would otherwise be unreadably narrow
-  const cssW = Math.max(containerW, mL + 180 + mR);
+  // --- Step 2: size and draw the label canvas ---
+  if (lcanvas) {
+    lcanvas.width = mL * dpr;
+    lcanvas.height = cssH * dpr;
+    lcanvas.style.width = mL + "px";
+    lcanvas.style.height = cssH + "px";
+    const lCtx = lcanvas.getContext("2d");
+    lCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lCtx.clearRect(0, 0, mL, cssH);
+    lCtx.font = `12px ${sysFont}`;
+    lCtx.textBaseline = "middle";
+    lCtx.textAlign = "right";
+    const lTextc = cssVar("--text") || "#e6edf3";
+    const lMuted = cssVar("--muted") || "#9aa7b4";
+    // pre-compute rowY here using the same ph; rows haven't changed
+    let ly = mT;
+    const lRowY = rows.map(r => { const h = r.frac*ph; const o = {y:ly, h}; ly += h; return o; });
+    lRowY.forEach((ry, ri) => {
+      if (ry.h < 11) return;
+      const r = rows[ri];
+      const cy = ry.y + ry.h/2;
+      const pctTxt = (r.p*100).toFixed(0)+"%";
+      const pctW = lCtx.measureText(pctTxt).width;
+      lCtx.fillStyle = lMuted; lCtx.fillText(pctTxt, mL-8, cy);
+      lCtx.fillStyle = lTextc; lCtx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy);
+    });
+  }
 
-  // Resizing canvas resets context state — re-apply transform afterwards
+  // --- Step 3: size and draw the matrix canvas (x starts at 0 — label canvas is a separate element) ---
+  const totalW = canvas.parentElement.clientWidth || 600;
+  const cssW = Math.max(totalW - mL, 200); // matrix takes the remaining width
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
 
-  const pw = cssW - mL - mR;
+  const pw = cssW - mR;
   const border = cssVar("--bg") || "#111827";
   const textc = cssVar("--text") || "#e6edf3";
   const muted = cssVar("--muted") || "#9aa7b4";
 
-  // column x / row y extents
-  let x = mL; const colX = cols.map(c => { const w = c.frac*pw; const o = {x, w}; x += w; return o; });
+  // matrix columns and rows start at x=0, y=mT in the matrix canvas
+  let x = 0; const colX = cols.map(c => { const w = c.frac*pw; const o = {x, w}; x += w; return o; });
   let y = mT; const rowY = rows.map(r => { const h = r.frac*ph; const o = {y, h}; y += h; return o; });
 
   matrixCells = [];
-  ctx.font = "12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+  ctx.font = `12px ${sysFont}`;
   ctx.textBaseline = "middle";
 
   cols.forEach((c,ci) => {
@@ -572,12 +601,12 @@ function renderMatrix(oppTeam){
       ctx.strokeStyle = border; ctx.lineWidth = 1.5; ctx.strokeRect(X,Y,W,H);
       const prob = c.frac * r.frac;
       matrixCells.push({X,Y,W,H, winner:c.name, opp:r.name, prob});
-      if (r.p >= 0.03){ // label every cell whose opponent row is >= 3%, regardless of cell size
-        ctx.font = "bold 12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+      if (r.p >= 0.03){
+        ctx.font = `bold 12px ${sysFont}`;
         const label = (prob*100).toFixed(1)+"%";
         const cx = X+W/2, cy = Y+H/2;
         const bw = ctx.measureText(label).width + 10, bh = 16;
-        ctx.fillStyle = color; // solid swatch (no texture) behind the number for legibility
+        ctx.fillStyle = color;
         ctx.beginPath();
         if (ctx.roundRect) ctx.roundRect(cx-bw/2, cy-bh/2, bw, bh, 4);
         else ctx.rect(cx-bw/2, cy-bh/2, bw, bh);
@@ -589,7 +618,7 @@ function renderMatrix(oppTeam){
     });
   });
 
-  // winner column labels (top)
+  // column labels (top of matrix canvas)
   ctx.font = `12px ${sysFont}`;
   ctx.fillStyle = textc; ctx.textAlign = "center";
   cols.forEach((c,ci) => {
@@ -600,26 +629,9 @@ function renderMatrix(oppTeam){
     ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11, colMaxW);
   });
 
-  // Row labels in the dynamically-sized left margin; clip rect prevents emoji bleed into matrix
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, mL - 2, cssH);
-  ctx.clip();
-  ctx.textAlign = "right";
-  ctx.font = `12px ${sysFont}`;
-  rows.forEach((r,ri) => {
-    if (rowY[ri].h >= 11){
-      const cy = rowY[ri].y + rowY[ri].h/2;
-      const pctTxt = (r.p*100).toFixed(0)+"%";
-      const pctW = ctx.measureText(pctTxt).width;
-      ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
-      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy);
-    }
-  });
-  ctx.restore();
   // axis caption
   ctx.fillStyle = muted; ctx.textAlign = "left";
-  ctx.fillText("Group E winner →", mL, 14);
+  ctx.fillText("Group E winner →", 0, 14);
 }
 
 function matrixHover(ev){
