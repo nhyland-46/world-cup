@@ -581,7 +581,7 @@ function renderMatrix(oppTeam){
   // Reading offsetWidth forces a synchronous reflow, giving us the exact flex-computed width.
   const ctx = canvas.getContext("2d");
   canvas.style.width = ""; // clear any previous inline width so flex:1 can compute freely
-  const cssW = Math.max(canvas.offsetWidth, 180);
+  const cssW = Math.max(canvas.offsetWidth, 300);
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -635,9 +635,6 @@ function renderMatrix(oppTeam){
     ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11, colMaxW);
   });
 
-  // axis caption
-  ctx.fillStyle = muted; ctx.textAlign = "left";
-  ctx.fillText("Group E winner →", 0, 14);
 }
 
 function matrixHover(ev){
@@ -649,9 +646,14 @@ function matrixHover(ev){
   const hit = matrixCells.find(c => mx>=c.X && mx<=c.X+c.W && my>=c.Y && my<=c.Y+c.H);
   if (hit){
     tip.style.display = "block";
-    tip.style.left = (ev.clientX + 12) + "px";
-    tip.style.top = (ev.clientY + 12) + "px";
     tip.textContent = `${withFlag(hit.winner)} vs ${withFlag(hit.opp)}: ${(hit.prob*100).toFixed(2)}%`;
+    // clamp so tooltip never goes off the right or bottom of the viewport
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const tx = ev.clientX + 12 + tw > window.innerWidth - 4
+      ? ev.clientX - tw - 12
+      : ev.clientX + 12;
+    tip.style.left = tx + "px";
+    tip.style.top = Math.min(ev.clientY + 12, window.innerHeight - th - 4) + "px";
   } else {
     tip.style.display = "none";
   }
