@@ -584,7 +584,7 @@ function renderMatrix(oppTeam){
   rows.forEach((r,ri) => {
     if (rowY[ri].h >= 11){
       const cy = rowY[ri].y + rowY[ri].h/2;
-      const pctTxt = (r.p*100).toFixed(0)+"%";
+      const pctTxt = "";
       ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
       ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - ctx.measureText(pctTxt).width - 8, cy);
     }
