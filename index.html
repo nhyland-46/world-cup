@@ -517,23 +517,40 @@ function renderMatrix(oppTeam){
   const rsum = rowsData.reduce((s,r) => s+r.p, 0) || 1;
   const rows = rowsData.map(r => ({name: r.name, frac: r.p/rsum, p: r.p}));
 
-  // canvas sizing (HiDPI crisp)
+  // canvas sizing — measure label widths first so the left margin is exactly as wide as needed
   const dpr = window.devicePixelRatio || 1;
   const containerW = canvas.parentElement.clientWidth || 600;
-  // on narrow screens: no left-margin labels; fit the canvas to the container so there's no horizontal scroll
-  const mobile = containerW < 480;
-  const cssW = mobile ? containerW : Math.max(containerW, 460);
+  const sysFont = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
   const cssH = 520;
+  const mT=58, mR=12, mB=14;
+  const ph = cssH - mT - mB; // row heights are independent of mL
+
+  // Measure label widths with the DPR transform active so measurements match rendering.
+  // Flag emoji widths are unreliable on mobile canvas, so budget a fixed amount for them.
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.font = `12px ${sysFont}`;
+  const FLAG_BUDGET = 20; // px reserved for flag emoji + trailing space
+  let maxLabelW = 0;
+  rows.forEach(r => {
+    if (r.frac * ph < 11) return; // skip rows too thin to show a label
+    const pctTxt = (r.p * 100).toFixed(0) + "%";
+    // layout right-to-left: [8px gap to matrix][pct][8px gap][name][flag budget][4px left pad]
+    const w = 4 + FLAG_BUDGET + ctx.measureText(r.name).width + 8 + ctx.measureText(pctTxt).width + 8;
+    if (w > maxLabelW) maxLabelW = w;
+  });
+  const mL = Math.max(Math.ceil(maxLabelW), 40); // at least 40px even if no rows qualify
+
+  // Canvas width: always fits the container; allows scroll only if matrix would otherwise be unreadably narrow
+  const cssW = Math.max(containerW, mL + 180 + mR);
+
+  // Resizing canvas resets context state — re-apply transform afterwards
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
-  const ctx = canvas.getContext("2d");
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
 
-  // mobile: no left margin (labels overlay inside rows); desktop: 170px left margin
-  const mL = mobile ? 0 : 170;
-  const mT=58, mR=12, mB=14;
-  const pw = cssW - mL - mR, ph = cssH - mT - mB;
+  const pw = cssW - mL - mR;
   const border = cssVar("--bg") || "#111827";
   const textc = cssVar("--text") || "#e6edf3";
   const muted = cssVar("--muted") || "#9aa7b4";
@@ -573,7 +590,6 @@ function renderMatrix(oppTeam){
   });
 
   // winner column labels (top)
-  const sysFont = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
   ctx.font = `12px ${sysFont}`;
   ctx.fillStyle = textc; ctx.textAlign = "center";
   cols.forEach((c,ci) => {
@@ -584,51 +600,23 @@ function renderMatrix(oppTeam){
     ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11, colMaxW);
   });
 
-  if (mobile) {
-    // Mobile: overlay team name + row % as a small pill inside the left edge of each row
-    rows.forEach((r,ri) => {
-      if (rowY[ri].h < 13) return;
+  // Row labels in the dynamically-sized left margin; clip rect prevents emoji bleed into matrix
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, mL - 2, cssH);
+  ctx.clip();
+  ctx.textAlign = "right";
+  ctx.font = `12px ${sysFont}`;
+  rows.forEach((r,ri) => {
+    if (rowY[ri].h >= 11){
       const cy = rowY[ri].y + rowY[ri].h/2;
-      const pctTxt = "  " + (r.p*100).toFixed(0) + "%";
-      ctx.font = `bold 11px ${sysFont}`;
-      const nameW = ctx.measureText(r.name).width;
-      ctx.font = `11px ${sysFont}`;
+      const pctTxt = (r.p*100).toFixed(0)+"%";
       const pctW = ctx.measureText(pctTxt).width;
-      const pillW = nameW + pctW + 10;
-      const pillH = 15;
-      // semi-transparent dark pill so text is legible over any cell color
-      ctx.fillStyle = "rgba(0,0,0,0.45)";
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(6, cy - pillH/2, pillW, pillH, 4);
-      else ctx.rect(6, cy - pillH/2, pillW, pillH);
-      ctx.fill();
-      ctx.textAlign = "left";
-      ctx.font = `bold 11px ${sysFont}`;
-      ctx.fillStyle = "#fff";
-      ctx.fillText(r.name, 10, cy);
-      ctx.font = `11px ${sysFont}`;
-      ctx.fillStyle = "rgba(255,255,255,0.7)";
-      ctx.fillText(pctTxt, 10 + nameW, cy);
-    });
-  } else {
-    // Desktop: row labels in the left margin, clipped so emoji can't bleed into the matrix
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, mL - 2, cssH);
-    ctx.clip();
-    ctx.textAlign = "right";
-    rows.forEach((r,ri) => {
-      if (rowY[ri].h >= 11){
-        const cy = rowY[ri].y + rowY[ri].h/2;
-        const pctTxt = (r.p*100).toFixed(0)+"%";
-        const pctW = ctx.measureText(pctTxt).width;
-        const nameMaxW = mL - 8 - pctW - 20;
-        ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
-        ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy, nameMaxW);
-      }
-    });
-    ctx.restore();
-  }
+      ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
+      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy);
+    }
+  });
+  ctx.restore();
   // axis caption
   ctx.fillStyle = muted; ctx.textAlign = "left";
   ctx.fillText("Group E winner →", mL, 14);
