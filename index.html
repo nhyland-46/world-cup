@@ -505,7 +505,7 @@ function renderMatrix(oppTeam){
   const {oppColor, winShape} = colorMaps(oppTeam);
 
   // columns = Group E winners with prob>0, widths normalized to sum 1
-  const wins = state.pEWin.filter(([,p]) => p > 0);
+  const wins = state.pEWin.filter(([,p]) => p > 0).sort((a,b) => b[1] - a[1]);
   const wsum = wins.reduce((s,[,p]) => s+p, 0) || 1;
   const cols = wins.map(([name,p]) => ({name, frac: p/wsum}));
 
