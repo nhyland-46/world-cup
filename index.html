@@ -217,13 +217,40 @@ const LS_KEY = "match74_inputs_v5";
 let state;
 function loadDefaults(){ state = JSON.parse(JSON.stringify(DEFAULTS)); }
 
-// UTF-8 safe base64url (team names include ç, etc.)
-const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+// Legacy base64url decode — keeps old "#d=" share links working.
 const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))));
 
+// Share format "#v=": just the probability values (as percentages) in a fixed order.
+// The app already knows the team names from DEFAULTS, so the link stays short and readable,
+// e.g. #v=61,18,21,0,30,20,10,7,...  (Group-E win %, then A/B/C/D/F thirds, then group %).
+const NUM_COUNT = 4 + ROUTABLE.length * 4 + OTHER_Q.length; // 4 + 20 + 7 = 31
+function stateToNums(){
+  const n = [];
+  state.pEWin.forEach(([,v]) => n.push(v));
+  ROUTABLE.forEach(g => state.tq[g].forEach(([,v]) => n.push(v)));
+  OTHER_Q.forEach(g => n.push(state.q[g]));
+  return n;
+}
+function numsToState(nums){
+  const s = JSON.parse(JSON.stringify(DEFAULTS)); // names + structure from defaults
+  let i = 0;
+  s.pEWin.forEach(row => row[1] = nums[i++]);
+  ROUTABLE.forEach(g => s.tq[g].forEach(row => row[1] = nums[i++]));
+  OTHER_Q.forEach(g => s.q[g] = nums[i++]);
+  return s;
+}
+const encodeVals = () => stateToNums().map(v => +(v * 100).toFixed(3)).join(",");
+
 function stateFromHash(){
-  if (location.hash.startsWith("#d=")){
-    try { return JSON.parse(b64d(location.hash.slice(3))); } catch(e){}
+  const h = location.hash;
+  if (h.startsWith("#v=")){
+    try {
+      const nums = h.slice(3).split(",").map(x => parseFloat(x) / 100);
+      if (nums.length === NUM_COUNT && nums.every(n => !isNaN(n))) return numsToState(nums);
+    } catch(e){}
+  }
+  if (h.startsWith("#d=")){ // legacy base64 links
+    try { return JSON.parse(b64d(h.slice(3))); } catch(e){}
   }
   return null;
 }
@@ -241,10 +268,10 @@ function loadState(){
 function saveState(){
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
   // keep the address bar in sync so a plain copy of the URL also shares values
-  try { history.replaceState(null, "", "#d=" + b64e(JSON.stringify(state))); } catch(e){}
+  try { history.replaceState(null, "", "#v=" + encodeVals()); } catch(e){}
 }
 function shareURL(){
-  return location.href.split("#")[0] + "#d=" + b64e(JSON.stringify(state));
+  return location.href.split("#")[0] + "#v=" + encodeVals();
 }
 
 const $ = sel => document.querySelector(sel);
