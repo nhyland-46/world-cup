@@ -519,7 +519,8 @@ function renderMatrix(oppTeam){
 
   // canvas sizing (HiDPI crisp)
   const dpr = window.devicePixelRatio || 1;
-  const cssW = Math.max(canvas.parentElement.clientWidth || 600, 460); // keep legible; scrolls on mobile
+  const containerW = canvas.parentElement.clientWidth || 600;
+  const cssW = Math.max(containerW, 380); // 380 fits on most phones without forcing scroll
   const cssH = 520;
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
@@ -527,7 +528,9 @@ function renderMatrix(oppTeam){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
 
-  const mL=170, mT=58, mR=12, mB=14;
+  // on narrow screens shrink the left margin so the matrix gets more room
+  const mL = containerW < 420 ? 140 : 170;
+  const mT=58, mR=12, mB=14;
   const pw = cssW - mL - mR, ph = cssH - mT - mB;
   const border = cssVar("--bg") || "#111827";
   const textc = cssVar("--text") || "#e6edf3";
@@ -572,19 +575,28 @@ function renderMatrix(oppTeam){
   ctx.fillStyle = textc; ctx.textAlign = "center";
   cols.forEach((c,ci) => {
     const cx = colX[ci].x + colX[ci].w/2;
-    if (flagChar(c.name)) ctx.fillText(flagChar(c.name), cx, mT-40);
-    ctx.fillStyle = textc; ctx.fillText(c.name, cx, mT-25);
-    ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11);
+    const colMaxW = Math.max(colX[ci].w - 4, 10);
+    if (flagChar(c.name)) ctx.fillText(flagChar(c.name), cx, mT-40, colMaxW);
+    ctx.fillStyle = textc; ctx.fillText(c.name, cx, mT-25, colMaxW);
+    ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11, colMaxW);
   });
+  // clip row labels to the left margin so flag emoji never bleeds into matrix cells
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, mL - 2, cssH);
+  ctx.clip();
   ctx.textAlign = "right";
   rows.forEach((r,ri) => {
     if (rowY[ri].h >= 11){
       const cy = rowY[ri].y + rowY[ri].h/2;
       const pctTxt = (r.p*100).toFixed(0)+"%";
+      const pctW = ctx.measureText(pctTxt).width;
+      const nameMaxW = mL - 8 - pctW - 20; // available width for the country name
       ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
-      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - ctx.measureText(pctTxt).width - 8, cy);
+      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy, nameMaxW);
     }
   });
+  ctx.restore();
   // axis captions
   ctx.fillStyle = muted; ctx.textAlign = "left";
   ctx.fillText("Group E winner →", mL, 14);
