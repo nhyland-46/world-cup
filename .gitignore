@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.claude/
+.DS_Store
+
+# scratch / not part of the deployed app
+chatgpt_*.html
+wc2026-scraper/

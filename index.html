@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match 74 opponent model — v5 (exact Annex C routing)</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171c22; --panel2: #1e252d; --line: #2a323c;
+    --text: #e6edf3; --muted: #9aa7b4; --accent: #4f9dff; --accent2: #36c692;
+    --warn: #f5a524; --bar: #2f6fd0;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg:#f4f6f9; --panel:#fff; --panel2:#eef2f7; --line:#d8dee6;
+      --text:#1b2430; --muted:#5b6776; --accent:#1f6feb; --accent2:#0f9d6e;
+      --warn:#b06a00; --bar:#4f9dff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1080px; margin:0 auto; padding:24px 18px 64px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  h2 { font-size:15px; margin:0 0 12px; letter-spacing:.02em; text-transform:uppercase; color:var(--muted); }
+  .sub { color:var(--muted); margin:0 0 20px; }
+  .sub a { color:var(--accent); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:860px){ .grid { grid-template-columns:1fr; } }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .card.full { grid-column:1 / -1; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { padding:5px 8px; text-align:left; }
+  thead th { color:var(--muted); font-weight:600; font-size:12px; border-bottom:1px solid var(--line); }
+  tbody tr:nth-child(even){ background:var(--panel2); }
+  input[type=text]{ width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:7px; padding:5px 7px; font:inherit; }
+  input[type=number]{ width:88px; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:7px; padding:5px 7px; font:inherit; text-align:right; }
+  input:focus{ outline:2px solid var(--accent); outline-offset:-1px; }
+  .gtitle{ font-weight:700; color:var(--accent2); margin:14px 0 4px; }
+  .gtitle:first-child{ margin-top:0; }
+  .small{ font-size:12px; color:var(--muted); }
+  .sumchip{ font-size:11px; color:var(--muted); margin-left:6px; }
+  .sumchip.bad{ color:var(--warn); font-weight:700; }
+  .barrow{ display:grid; grid-template-columns:150px 1fr 56px; align-items:center; gap:10px; height:24px; margin-bottom:5px; }
+  .barlabel{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .barfill{ background:var(--bar); height:16px; border-radius:4px; min-width:2px; }
+  .tabs{ display:flex; gap:4px; margin:20px 0 16px; border-bottom:1px solid var(--line); }
+  .tabbtn{ background:transparent; color:var(--muted); border:0; border-bottom:2px solid transparent;
+    border-radius:0; padding:9px 16px; font:inherit; font-weight:600; cursor:pointer; }
+  .tabbtn:hover{ color:var(--text); }
+  .tabbtn.active{ color:var(--text); border-bottom-color:var(--accent); }
+  .tabpanel[hidden]{ display:none; }
+  .slicers{ display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+  .slicers label{ font-size:12px; color:var(--muted); margin-right:6px; }
+  select{ background:var(--panel2); border:1px solid var(--line); color:var(--text);
+    border-radius:7px; padding:5px 8px; font:inherit; }
+  .mono{ font-variant-numeric:tabular-nums; }
+  .slot{ color:var(--muted); font-size:11px; }
+  .flag{ margin-right:6px; }
+  .pct{ text-align:right; font-variant-numeric:tabular-nums; }
+  .warnbox{ background:rgba(245,165,36,.12); border:1px solid var(--warn); color:var(--warn);
+    border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:13px; white-space:pre-wrap; }
+  button{ background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 14px;
+    font:inherit; font-weight:600; cursor:pointer; }
+  button.ghost{ background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .tag{ display:inline-block; background:var(--panel2); border:1px solid var(--line); border-radius:999px;
+    padding:2px 9px; font-size:12px; color:var(--muted); }
+  details summary{ cursor:pointer; color:var(--muted); }
+  .footer{ color:var(--muted); font-size:12px; margin-top:28px; }
+  .chartwrap{ position:relative; height:440px; }
+  .legendrow{ display:flex; margin-top:12px; }
+  .legendgroup{ display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; }
+  .legitem{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text); }
+  .legswatch{ width:14px; height:14px; border-radius:3px; display:inline-block; }
+  .legcanvas{ width:16px; height:16px; border-radius:3px; border:1px solid var(--line); }
+  .leglabel-strong{ font-weight:700; color:var(--muted); margin-right:2px; }
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .topbar h1{ margin:0; }
+  .topbar-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .tip{ position:fixed; z-index:20; background:var(--panel2); border:1px solid var(--line);
+    color:var(--text); padding:4px 8px; border-radius:6px; font-size:12px;
+    pointer-events:none; display:none; white-space:nowrap; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/patternomaly@1.3.2/dist/patternomaly.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <h1>Match 74 — who does Group E's winner play?</h1>
+    <div class="topbar-actions">
+      <span id="saveState" class="small"></span>
+      <button id="shareBtn" type="button">🔗 Share</button>
+    </div>
+  </div>
+  <p class="sub">The likely Round-of-32 opponent for the winner of Group E.
+    Enter your probabilities in the <b>Inputs</b> tab — get the numbers from the
+    <a href="https://wc2026-predictions.streamlit.app/" target="_blank" rel="noopener">WC2026 predictions app ↗</a>.</p>
+
+  <div id="warns"></div>
+  <div id="matrixTip" class="tip"></div>
+
+  <div class="tabs">
+    <button class="tabbtn active" type="button" data-tab="matrix">Matrix</button>
+    <button class="tabbtn" type="button" data-tab="detail">Detail</button>
+    <button class="tabbtn" type="button" data-tab="other">Breakdown</button>
+    <button class="tabbtn" type="button" data-tab="inputs">Inputs</button>
+  </div>
+
+  <!-- MATRIX TAB -->
+  <div class="tabpanel" data-panel="matrix">
+    <div class="card full">
+      <h2>Matchup matrix</h2>
+      <div class="small" style="margin-bottom:8px">Each box's area is the chance of that matchup.
+        Columns are the Group E winner; rows are the opponent. Hover for exact values.</div>
+      <div style="position:relative"><canvas id="matrixChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- DETAIL TAB -->
+  <div class="tabpanel" data-panel="detail" hidden>
+    <div class="card full">
+      <h2>All matchups</h2>
+      <div class="slicers">
+        <span><label>Group E winner</label><select id="filterWinner"></select></span>
+        <span><label>Opponent</label><select id="filterOpp"></select></span>
+        <span id="detailSummary" class="small"></span>
+      </div>
+      <table>
+        <thead><tr><th>Group E winner</th><th>Opponent</th><th class="pct">Chance</th></tr></thead>
+        <tbody id="jointBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- OTHER TAB -->
+  <div class="tabpanel" data-panel="other" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>Opponent's group</h2>
+        <div id="oppGroup"></div>
+      </div>
+      <div class="card">
+        <h2>Most likely opponents</h2>
+        <div id="oppTeam"></div>
+      </div>
+    </div>
+    <div class="card full" style="margin-top:18px">
+      <h2>Chance each group produces a qualifying 3rd</h2>
+      <div id="qEff" class="small mono"></div>
+    </div>
+  </div>
+
+  <!-- INPUTS TAB -->
+  <div class="tabpanel" data-panel="inputs" hidden>
+    <div class="grid">
+      <div class="card">
+        <h2>Group E — chance each team wins the group</h2>
+        <table><tbody id="eWinBody"></tbody></table>
+        <div class="small">Sum <span id="eWinSum" class="mono"></span> (should be ≈ 1).</div>
+      </div>
+
+      <div class="card">
+        <h2>Chance each team finishes 3rd and qualifies</h2>
+        <div class="small" style="margin-bottom:8px">Only groups A, B, C, D and F can produce Match 74's opponent.</div>
+        <div id="tqBody"></div>
+      </div>
+
+      <div class="card full">
+        <h2>Chance each remaining group produces a qualifying 3rd</h2>
+        <div class="small" style="margin-bottom:8px">For the groups that can't be Match 74's opponent (groups A–F come from the values above).</div>
+        <div id="qBody" style="display:flex; flex-wrap:wrap; gap:14px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Donut chart disabled (matrix preferred). Kept for possible later use.
+  <div class="card full">
+    <h2>Match-74 matchup wheel — winner × opponent</h2>
+    <div class="chartwrap"><canvas id="donutChart"></canvas></div>
+    <div class="legendrow"><div id="oppLegend" class="legendgroup"></div></div>
+    <div class="legendrow"><div id="winLegend" class="legendgroup"></div></div>
+  </div>
+  -->
+
+
+  <div class="footer">
+    Based on FIFA's official Annex C pairing table for the 2026 Round of 32 (all 495 combinations of
+    qualifying third-placed teams).
+  </div>
+</div>
+
+<script>
+const ANNEX_C = [["EFGHIJKL","F"],["DFGHIJKL","D"],["DEGHIJKL","D"],["DEFHIJKL","D"],["DEFGIJKL","D"],["DEFGHJKL","D"],["DEFGHIKL","D"],["DEFGHIJL","D"],["DEFGHIJK","D"],["CFGHIJKL","C"],["CEGHIJKL","C"],["CEFHIJKL","C"],["CEFGIJKL","C"],["CEFGHJKL","C"],["CEFGHIKL","C"],["CEFGHIJL","C"],["CEFGHIJK","C"],["CDGHIJKL","C"],["CDFHIJKL","D"],["CDFGIJKL","D"],["CDFGHJKL","D"],["CDFGHIKL","D"],["CDFGHIJL","D"],["CDFGHIJK","D"],["CDEHIJKL","C"],["CDEGIJKL","C"],["CDEGHJKL","C"],["CDEGHIKL","C"],["CDEGHIJL","C"],["CDEGHIJK","C"],["CDEFIJKL","D"],["CDEFHJKL","D"],["CDEFHIKL","D"],["CDEFHIJL","D"],["CDEFHIJK","D"],["CDEFGJKL","D"],["CDEFGIKL","D"],["CDEFGIJL","D"],["CDEFGIJK","D"],["CDEFGHKL","D"],["CDEFGHJL","D"],["CDEFGHJK","D"],["CDEFGHIL","D"],["CDEFGHIK","D"],["CDEFGHIJ","D"],["BFGHIJKL","F"],["BEGHIJKL","B"],["BEFHIJKL","F"],["BEFGIJKL","F"],["BEFGHJKL","F"],["BEFGHIKL","F"],["BEFGHIJL","F"],["BEFGHIJK","F"],["BDGHIJKL","D"],["BDFHIJKL","D"],["BDFGIJKL","D"],["BDFGHJKL","D"],["BDFGHIKL","D"],["BDFGHIJL","D"],["BDFGHIJK","D"],["BDEHIJKL","D"],["BDEGIJKL","D"],["BDEGHJKL","D"],["BDEGHIKL","D"],["BDEGHIJL","D"],["BDEGHIJK","D"],["BDEFIJKL","D"],["BDEFHJKL","D"],["BDEFHIKL","D"],["BDEFHIJL","D"],["BDEFHIJK","D"],["BDEFGJKL","D"],["BDEFGIKL","D"],["BDEFGIJL","D"],["BDEFGIJK","D"],["BDEFGHKL","D"],["BDEFGHJL","D"],["BDEFGHJK","D"],["BDEFGHIL","D"],["BDEFGHIK","D"],["BDEFGHIJ","D"],["BCGHIJKL","C"],["BCFHIJKL","C"],["BCFGIJKL","C"],["BCFGHJKL","C"],["BCFGHIKL","C"],["BCFGHIJL","C"],["BCFGHIJK","C"],["BCEHIJKL","C"],["BCEGIJKL","C"],["BCEGHJKL","C"],["BCEGHIKL","C"],["BCEGHIJL","C"],["BCEGHIJK","C"],["BCEFIJKL","C"],["BCEFHJKL","C"],["BCEFHIKL","C"],["BCEFHIJL","C"],["BCEFHIJK","C"],["BCEFGJKL","C"],["BCEFGIKL","C"],["BCEFGIJL","C"],["BCEFGIJK","C"],["BCEFGHKL","C"],["BCEFGHJL","C"],["BCEFGHJK","C"],["BCEFGHIL","C"],["BCEFGHIK","C"],["BCEFGHIJ","C"],["BCDHIJKL","C"],["BCDGIJKL","C"],["BCDGHJKL","C"],["BCDGHIKL","C"],["BCDGHIJL","C"],["BCDGHIJK","C"],["BCDFIJKL","D"],["BCDFHJKL","D"],["BCDFHIKL","D"],["BCDFHIJL","D"],["BCDFHIJK","D"],["BCDFGJKL","D"],["BCDFGIKL","D"],["BCDFGIJL","D"],["BCDFGIJK","D"],["BCDFGHKL","D"],["BCDFGHJL","D"],["BCDFGHJK","C"],["BCDFGHIL","D"],["BCDFGHIK","D"],["BCDFGHIJ","C"],["BCDEIJKL","C"],["BCDEHJKL","C"],["BCDEHIKL","C"],["BCDEHIJL","C"],["BCDEHIJK","C"],["BCDEGJKL","C"],["BCDEGIKL","C"],["BCDEGIJL","C"],["BCDEGIJK","C"],["BCDEGHKL","C"],["BCDEGHJL","C"],["BCDEGHJK","C"],["BCDEGHIL","C"],["BCDEGHIK","C"],["BCDEGHIJ","C"],["BCDEFJKL","D"],["BCDEFIKL","D"],["BCDEFIJL","D"],["BCDEFIJK","D"],["BCDEFHKL","D"],["BCDEFHJL","D"],["BCDEFHJK","D"],["BCDEFHIL","D"],["BCDEFHIK","D"],["BCDEFHIJ","D"],["BCDEFGKL","D"],["BCDEFGJL","D"],["BCDEFGJK","D"],["BCDEFGIL","D"],["BCDEFGIK","D"],["BCDEFGIJ","D"],["BCDEFGHL","D"],["BCDEFGHK","D"],["BCDEFGHJ","C"],["BCDEFGHI","D"],["AFGHIJKL","F"],["AEGHIJKL","A"],["AEFHIJKL","F"],["AEFGIJKL","F"],["AEFGHJKL","F"],["AEFGHIKL","F"],["AEFGHIJL","F"],["AEFGHIJK","F"],["ADGHIJKL","D"],["ADFHIJKL","D"],["ADFGIJKL","D"],["ADFGHJKL","D"],["ADFGHIKL","D"],["ADFGHIJL","D"],["ADFGHIJK","D"],["ADEHIJKL","D"],["ADEGIJKL","D"],["ADEGHJKL","D"],["ADEGHIKL","D"],["ADEGHIJL","D"],["ADEGHIJK","D"],["ADEFIJKL","D"],["ADEFHJKL","D"],["ADEFHIKL","D"],["ADEFHIJL","D"],["ADEFHIJK","D"],["ADEFGJKL","D"],["ADEFGIKL","D"],["ADEFGIJL","D"],["ADEFGIJK","D"],["ADEFGHKL","D"],["ADEFGHJL","D"],["ADEFGHJK","D"],["ADEFGHIL","D"],["ADEFGHIK","D"],["ADEFGHIJ","D"],["ACGHIJKL","C"],["ACFHIJKL","C"],["ACFGIJKL","C"],["ACFGHJKL","C"],["ACFGHIKL","C"],["ACFGHIJL","C"],["ACFGHIJK","C"],["ACEHIJKL","C"],["ACEGIJKL","C"],["ACEGHJKL","C"],["ACEGHIKL","C"],["ACEGHIJL","C"],["ACEGHIJK","C"],["ACEFIJKL","C"],["ACEFHJKL","C"],["ACEFHIKL","C"],["ACEFHIJL","C"],["ACEFHIJK","C"],["ACEFGJKL","C"],["ACEFGIKL","C"],["ACEFGIJL","C"],["ACEFGIJK","C"],["ACEFGHKL","C"],["ACEFGHJL","C"],["ACEFGHJK","C"],["ACEFGHIL","C"],["ACEFGHIK","C"],["ACEFGHIJ","C"],["ACDHIJKL","C"],["ACDGIJKL","C"],["ACDGHJKL","C"],["ACDGHIKL","C"],["ACDGHIJL","C"],["ACDGHIJK","C"],["ACDFIJKL","D"],["ACDFHJKL","C"],["ACDFHIKL","C"],["ACDFHIJL","C"],["ACDFHIJK","C"],["ACDFGJKL","D"],["ACDFGIKL","D"],["ACDFGIJL","D"],["ACDFGIJK","D"],["ACDFGHKL","C"],["ACDFGHJL","D"],["ACDFGHJK","C"],["ACDFGHIL","C"],["ACDFGHIK","C"],["ACDFGHIJ","C"],["ACDEIJKL","C"],["ACDEHJKL","C"],["ACDEHIKL","C"],["ACDEHIJL","C"],["ACDEHIJK","C"],["ACDEGJKL","C"],["ACDEGIKL","C"],["ACDEGIJL","C"],["ACDEGIJK","C"],["ACDEGHKL","C"],["ACDEGHJL","C"],["ACDEGHJK","C"],["ACDEGHIL","C"],["ACDEGHIK","C"],["ACDEGHIJ","C"],["ACDEFJKL","D"],["ACDEFIKL","D"],["ACDEFIJL","D"],["ACDEFIJK","D"],["ACDEFHKL","C"],["ACDEFHJL","C"],["ACDEFHJK","C"],["ACDEFHIL","C"],["ACDEFHIK","C"],["ACDEFHIJ","C"],["ACDEFGKL","D"],["ACDEFGJL","D"],["ACDEFGJK","D"],["ACDEFGIL","D"],["ACDEFGIK","D"],["ACDEFGIJ","D"],["ACDEFGHL","C"],["ACDEFGHK","C"],["ACDEFGHJ","C"],["ACDEFGHI","C"],["ABGHIJKL","A"],["ABFHIJKL","A"],["ABFGIJKL","F"],["ABFGHJKL","F"],["ABFGHIKL","A"],["ABFGHIJL","F"],["ABFGHIJK","F"],["ABEHIJKL","A"],["ABEGIJKL","A"],["ABEGHJKL","A"],["ABEGHIKL","A"],["ABEGHIJL","A"],["ABEGHIJK","A"],["ABEFIJKL","A"],["ABEFHJKL","F"],["ABEFHIKL","F"],["ABEFHIJL","F"],["ABEFHIJK","F"],["ABEFGJKL","F"],["ABEFGIKL","A"],["ABEFGIJL","F"],["ABEFGIJK","F"],["ABEFGHKL","F"],["ABEFGHJL","F"],["ABEFGHJK","F"],["ABEFGHIL","F"],["ABEFGHIK","F"],["ABEFGHIJ","F"],["ABDHIJKL","D"],["ABDGIJKL","D"],["ABDGHJKL","D"],["ABDGHIKL","D"],["ABDGHIJL","D"],["ABDGHIJK","D"],["ABDFIJKL","D"],["ABDFHJKL","D"],["ABDFHIKL","D"],["ABDFHIJL","D"],["ABDFHIJK","D"],["ABDFGJKL","D"],["ABDFGIKL","D"],["ABDFGIJL","D"],["ABDFGIJK","D"],["ABDFGHKL","D"],["ABDFGHJL","D"],["ABDFGHJK","D"],["ABDFGHIL","D"],["ABDFGHIK","D"],["ABDFGHIJ","D"],["ABDEIJKL","A"],["ABDEHJKL","D"],["ABDEHIKL","D"],["ABDEHIJL","D"],["ABDEHIJK","D"],["ABDEGJKL","D"],["ABDEGIKL","A"],["ABDEGIJL","D"],["ABDEGIJK","D"],["ABDEGHKL","D"],["ABDEGHJL","D"],["ABDEGHJK","D"],["ABDEGHIL","D"],["ABDEGHIK","D"],["ABDEGHIJ","D"],["ABDEFJKL","D"],["ABDEFIKL","D"],["ABDEFIJL","D"],["ABDEFIJK","D"],["ABDEFHKL","D"],["ABDEFHJL","D"],["ABDEFHJK","D"],["ABDEFHIL","D"],["ABDEFHIK","D"],["ABDEFHIJ","D"],["ABDEFGKL","D"],["ABDEFGJL","D"],["ABDEFGJK","D"],["ABDEFGIL","D"],["ABDEFGIK","D"],["ABDEFGIJ","D"],["ABDEFGHL","D"],["ABDEFGHK","D"],["ABDEFGHJ","D"],["ABDEFGHI","D"],["ABCHIJKL","C"],["ABCGIJKL","C"],["ABCGHJKL","C"],["ABCGHIKL","C"],["ABCGHIJL","C"],["ABCGHIJK","C"],["ABCFIJKL","C"],["ABCFHJKL","C"],["ABCFHIKL","C"],["ABCFHIJL","C"],["ABCFHIJK","C"],["ABCFGJKL","F"],["ABCFGIKL","C"],["ABCFGIJL","F"],["ABCFGIJK","F"],["ABCFGHKL","C"],["ABCFGHJL","C"],["ABCFGHJK","C"],["ABCFGHIL","C"],["ABCFGHIK","C"],["ABCFGHIJ","C"],["ABCEIJKL","A"],["ABCEHJKL","C"],["ABCEHIKL","C"],["ABCEHIJL","C"],["ABCEHIJK","C"],["ABCEGJKL","C"],["ABCEGIKL","A"],["ABCEGIJL","C"],["ABCEGIJK","C"],["ABCEGHKL","C"],["ABCEGHJL","C"],["ABCEGHJK","C"],["ABCEGHIL","C"],["ABCEGHIK","C"],["ABCEGHIJ","C"],["ABCEFJKL","C"],["ABCEFIKL","C"],["ABCEFIJL","C"],["ABCEFIJK","C"],["ABCEFHKL","C"],["ABCEFHJL","C"],["ABCEFHJK","C"],["ABCEFHIL","C"],["ABCEFHIK","C"],["ABCEFHIJ","C"],["ABCEFGKL","C"],["ABCEFGJL","C"],["ABCEFGJK","C"],["ABCEFGIL","C"],["ABCEFGIK","C"],["ABCEFGIJ","C"],["ABCEFGHL","C"],["ABCEFGHK","C"],["ABCEFGHJ","C"],["ABCEFGHI","C"],["ABCDIJKL","C"],["ABCDHJKL","C"],["ABCDHIKL","C"],["ABCDHIJL","C"],["ABCDHIJK","C"],["ABCDGJKL","D"],["ABCDGIKL","C"],["ABCDGIJL","D"],["ABCDGIJK","D"],["ABCDGHKL","C"],["ABCDGHJL","C"],["ABCDGHJK","C"],["ABCDGHIL","C"],["ABCDGHIK","C"],["ABCDGHIJ","C"],["ABCDFJKL","D"],["ABCDFIKL","D"],["ABCDFIJL","D"],["ABCDFIJK","D"],["ABCDFHKL","C"],["ABCDFHJL","D"],["ABCDFHJK","C"],["ABCDFHIL","C"],["ABCDFHIK","C"],["ABCDFHIJ","C"],["ABCDFGKL","D"],["ABCDFGJL","D"],["ABCDFGJK","D"],["ABCDFGIL","D"],["ABCDFGIK","D"],["ABCDFGIJ","D"],["ABCDFGHL","D"],["ABCDFGHK","C"],["ABCDFGHJ","C"],["ABCDFGHI","C"],["ABCDEJKL","C"],["ABCDEIKL","C"],["ABCDEIJL","C"],["ABCDEIJK","C"],["ABCDEHKL","C"],["ABCDEHJL","C"],["ABCDEHJK","C"],["ABCDEHIL","C"],["ABCDEHIK","C"],["ABCDEHIJ","C"],["ABCDEGKL","C"],["ABCDEGJL","C"],["ABCDEGJK","C"],["ABCDEGIL","C"],["ABCDEGIK","C"],["ABCDEGIJ","C"],["ABCDEGHL","C"],["ABCDEGHK","C"],["ABCDEGHJ","C"],["ABCDEGHI","C"],["ABCDEFKL","D"],["ABCDEFJL","D"],["ABCDEFJK","D"],["ABCDEFIL","D"],["ABCDEFIK","D"],["ABCDEFIJ","D"],["ABCDEFHL","C"],["ABCDEFHK","C"],["ABCDEFHJ","C"],["ABCDEFHI","C"],["ABCDEFGL","D"],["ABCDEFGK","D"],["ABCDEFGJ","D"],["ABCDEFGI","D"],["ABCDEFGH","C"]];
+
+const GROUPS = "ABCDEFGHIJKL".split("");
+const ROUTABLE = ["A","B","C","D","F"];      // only these can feed slot 1E
+const OTHER_Q  = ["E","G","H","I","J","K","L"]; // q taken directly from inputs
+
+// Group teams from the 2026 final draw. Probabilities are placeholders —
+// pull real numbers from the predictions app linked above.
+const DEFAULTS = {
+  pEWin: [["Germany", 0.61], ["Ecuador", 0.18], ["Ivory Coast", 0.21], ["Curaçao", 0.0]],
+  tq: {
+    A: [["Mexico", 0.3], ["South Korea", 0.2], ["South Africa", 0.1], ["Czech Republic", 0.07]],
+    B: [["Canada", 0.25], ["Switzerland", 0.2], ["Qatar", 0.15], ["Bosnia and Herzegovina", 0.07]],
+    C: [["Brazil", 0.35], ["Morocco", 0.2], ["Scotland", 0.1], ["Haiti", 0.05]],
+    D: [["United States", 0.3], ["Turkey", 0.22], ["Paraguay", 0.1], ["Australia", 0.05]],
+    F: [["Netherlands", 0.28], ["Japan", 0.2], ["Sweden", 0.12], ["Tunisia", 0.07]],
+  },
+  q: {"E": 0.67, "G": 0.67, "H": 0.67, "I": 0.67, "J": 0.67, "K": 0.67, "L": 0.67},
+};
+
+const LS_KEY = "match74_inputs_v5";
+let state;
+function loadDefaults(){ state = JSON.parse(JSON.stringify(DEFAULTS)); }
+
+// UTF-8 safe base64url (team names include ç, etc.)
+const b64e = s => btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const b64d = s => decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))));
+
+function stateFromHash(){
+  if (location.hash.startsWith("#d=")){
+    try { return JSON.parse(b64d(location.hash.slice(3))); } catch(e){}
+  }
+  return null;
+}
+// Priority: a shared link's values > this browser's saved values > defaults.
+function loadState(){
+  const fromHash = stateFromHash();
+  if (fromHash){ state = fromHash; saveState(); return "hash"; }
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw){ state = JSON.parse(raw); return "local"; }
+  } catch(e){}
+  loadDefaults();
+  return "default";
+}
+function saveState(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+  // keep the address bar in sync so a plain copy of the URL also shares values
+  try { history.replaceState(null, "", "#d=" + b64e(JSON.stringify(state))); } catch(e){}
+}
+function shareURL(){
+  return location.href.split("#")[0] + "#d=" + b64e(JSON.stringify(state));
+}
+
+const $ = sel => document.querySelector(sel);
+const pct = x => (100*x).toFixed(2) + "%";
+
+// ---- build the input UI ----
+function buildInputs(){
+  // E winners
+  const eb = $("#eWinBody"); eb.innerHTML = "";
+  state.pEWin.forEach((row, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><input type="text" value="${row[0]}" data-k="ename" data-i="${i}"></td>
+      <td style="text-align:right"><input type="number" step="0.01" min="0" value="${row[1]}" data-k="ewin" data-i="${i}"></td>`;
+    eb.appendChild(tr);
+  });
+
+  // third_and_qualify
+  const tb = $("#tqBody"); tb.innerHTML = "";
+  ROUTABLE.forEach(g => {
+    const h = document.createElement("div"); h.className = "gtitle";
+    h.innerHTML = `Group ${g} <span class="sumchip" id="sum-${g}"></span>`;
+    tb.appendChild(h);
+    const tbl = document.createElement("table"); const body = document.createElement("tbody");
+    state.tq[g].forEach((row, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td><input type="text" value="${row[0]}" data-k="tname" data-g="${g}" data-i="${i}"></td>
+        <td style="text-align:right"><input type="number" step="0.01" min="0" value="${row[1]}" data-k="tq" data-g="${g}" data-i="${i}"></td>`;
+      body.appendChild(tr);
+    });
+    tbl.appendChild(body); tb.appendChild(tbl);
+  });
+
+  // q for other groups
+  const qb = $("#qBody"); qb.innerHTML = "";
+  OTHER_Q.forEach(g => {
+    const d = document.createElement("div");
+    d.innerHTML = `<label class="small">Group ${g}</label><br>
+      <input type="number" step="0.01" min="0" max="1" value="${state.q[g]}" data-k="q" data-g="${g}">`;
+    qb.appendChild(d);
+  });
+
+  document.querySelectorAll("input").forEach(inp => inp.addEventListener("input", onInput));
+}
+
+function onInput(e){
+  const t = e.target, k = t.dataset.k, g = t.dataset.g, i = t.dataset.i;
+  if (k === "ename") state.pEWin[i][0] = t.value;
+  else if (k === "ewin") state.pEWin[i][1] = parseFloat(t.value) || 0;
+  else if (k === "tname") state.tq[g][i][0] = t.value;
+  else if (k === "tq") state.tq[g][i][1] = parseFloat(t.value) || 0;
+  else if (k === "q") state.q[g] = parseFloat(t.value) || 0;
+  saveState();
+  compute();
+}
+
+// ---- the model (mirror of model_v5.py) ----
+function compute(){
+  const warns = [];
+  // effective q vector
+  const q = {};
+  OTHER_Q.forEach(g => q[g] = state.q[g]);
+  const splits = {};
+  ROUTABLE.forEach(g => {
+    const total = state.tq[g].reduce((s,r)=>s+r[1], 0);
+    q[g] = total;
+    splits[g] = state.tq[g].map(r => [r[0], total>0 ? r[1]/total : 0]);
+    const chip = $("#sum-"+g);
+    chip.textContent = "Total " + (total*100).toFixed(0) + "%";
+    chip.className = "sumchip" + (total<=0 ? " bad" : "");
+    if (total <= 0) warns.push(`Group ${g}: P(3rd & qualify) sums to 0 — give it positive values.`);
+  });
+
+  // renormalized Poisson-binomial weights over the 495 sets
+  let weights = new Array(ANNEX_C.length);
+  let wsum = 0;
+  for (let r=0; r<ANNEX_C.length; r++){
+    const S = ANNEX_C[r][0];
+    let w = 1;
+    for (const g of GROUPS) w *= S.includes(g) ? q[g] : (1 - q[g]);
+    weights[r] = w; wsum += w;
+  }
+  if (wsum <= 0){ warns.push("All set weights are zero — check q values (need 0 < q < 1)."); }
+  for (let r=0; r<weights.length; r++) weights[r] = wsum>0 ? weights[r]/wsum : 0;
+
+  // marginals
+  const oppGroup = {}, oppTeam = {};
+  for (let r=0; r<ANNEX_C.length; r++){
+    const g = ANNEX_C[r][1], w = weights[r];
+    oppGroup[g] = (oppGroup[g]||0) + w;
+    for (const [team, frac] of splits[g]) oppTeam[team] = (oppTeam[team]||0) + w*frac;
+  }
+
+  // joint
+  const eSum = state.pEWin.reduce((s,r)=>s+r[1], 0);
+  $("#eWinSum").textContent = eSum.toFixed(3);
+  if (Math.abs(eSum-1) > 0.02) warns.push(`P(win Group E) sums to ${eSum.toFixed(3)} (≈1 expected). Table is conditional on those values.`);
+  const joint = [];
+  for (const [e, pe] of state.pEWin)
+    for (const [opp, po] of Object.entries(oppTeam))
+      joint.push([e, opp, pe*po]);
+
+  render({q, oppGroup, oppTeam, joint, warns});
+}
+
+// Uniform row spacing; bar length encodes the value (relative to the largest), not position.
+function bars(container, entries){
+  const max = Math.max(...entries.map(e=>e[1]), 1e-9);
+  container.innerHTML = entries.map(([label,p]) =>
+    `<div class="barrow"><div class="barlabel">${label}</div>
+       <div><div class="barfill" style="width:${(100*p/max).toFixed(1)}%"></div></div>
+       <div class="pct">${pct(p)}</div></div>`).join("");
+}
+
+// ---- donut: slice COLOR = opponent, slice TEXTURE = Group-E winner ----
+const PALETTE = ["#ef4444","#f97316","#f59e0b","#eab308","#84cc16","#22c55e","#14b8a6",
+  "#06b6d4","#3b82f6","#6366f1","#8b5cf6","#a855f7","#d946ef","#ec4899","#f43f5e",
+  "#10b981","#0ea5e9","#7c3aed","#db2777","#65a30d"];
+const OTHER_COLOR = "#9aa7b4";
+const WINNER_PATTERNS = ["diagonal","dot","weave","cross","zigzag","triangle"];
+
+// Flag emoji per team (keyed by default names; unknown teams just show no flag).
+const FLAGS = {
+  "Germany":"🇩🇪", "Ecuador":"🇪🇨", "Ivory Coast":"🇨🇮", "Curaçao":"🇨🇼",
+  "Mexico":"🇲🇽", "South Korea":"🇰🇷", "South Africa":"🇿🇦", "Czech Republic":"🇨🇿",
+  "Canada":"🇨🇦", "Switzerland":"🇨🇭", "Qatar":"🇶🇦", "Bosnia and Herzegovina":"🇧🇦",
+  "Brazil":"🇧🇷", "Morocco":"🇲🇦", "Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿", "Haiti":"🇭🇹",
+  "United States":"🇺🇸", "Turkey":"🇹🇷", "Paraguay":"🇵🇾", "Australia":"🇦🇺",
+  "Netherlands":"🇳🇱", "Japan":"🇯🇵", "Sweden":"🇸🇪", "Tunisia":"🇹🇳",
+};
+const flag = t => FLAGS[t] ? `<span class="flag">${FLAGS[t]}</span>` : "";
+const withFlag = t => (FLAGS[t] ? FLAGS[t] + " " : "") + t; // plain text+emoji for canvas / tooltip
+const flagChar = t => FLAGS[t] || "";
+function oppGroupOf(opp){
+  for (const g of ROUTABLE){ if (state.tq[g].some(([n]) => n === opp)) return g; }
+  return "?";
+}
+const DONUT_MIN = 0.005;  // donut: matchups below 0.5% pooled into "Other"
+const MATRIX_MIN = 0.03;  // matrix: opponents below 3% pooled into an "Other" row
+let donutChart = null;
+
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// Shared so the donut and the matrix use identical color/texture for each matchup.
+function colorMaps(oppTeam){
+  const oppOrder = Object.entries(oppTeam).sort((a,b)=>b[1]-a[1])
+    .filter(([,p]) => p > 0).map(([o]) => o);
+  const oppColor = {Other: OTHER_COLOR};
+  oppOrder.forEach((o,i) => oppColor[o] = PALETTE[i % PALETTE.length]); // color = opponent
+  const winShape = {};
+  state.pEWin.forEach(([name],i) => winShape[name] = WINNER_PATTERNS[i % WINNER_PATTERNS.length]); // texture = winner
+  return {oppOrder, oppColor, winShape};
+}
+
+function renderDonut(joint, oppTeam){
+  const canvas = document.getElementById("donutChart");
+  if (!canvas || typeof Chart === "undefined") return;
+  const havePattern = (typeof pattern !== "undefined");
+  const {oppOrder, oppColor, winShape} = colorMaps(oppTeam);
+
+  // big slices kept individually; the long tail is pooled into "Other"
+  const big = joint.filter(([,,p]) => p >= DONUT_MIN).sort((a,b)=>b[2]-a[2]);
+  const smallSum = joint.filter(([,,p]) => p < DONUT_MIN).reduce((s,r)=>s+r[2],0);
+
+  const labels = big.map(([w,o]) => `${w} vs ${o}`);
+  const data = big.map(([,,p]) => p*100);
+  const bg = big.map(([w,o]) => {
+    const color = oppColor[o] || OTHER_COLOR;
+    return (havePattern && winShape[w]) ? pattern.draw(winShape[w], color) : color;
+  });
+  if (smallSum > 0){ labels.push("Other"); data.push(smallSum*100); bg.push(OTHER_COLOR); }
+
+  // only the opponents that show as their own slice get a legend entry
+  const shown = new Set(big.map(([,o]) => o));
+  const shownOpps = oppOrder.filter(o => shown.has(o));
+
+  const border = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#111827";
+
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(canvas, {
+    type: "doughnut",
+    data: { labels, datasets: [{ data, backgroundColor: bg, borderColor: border, borderWidth: 2, hoverOffset: 8 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: "55%",
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${c.label}: ${c.raw.toFixed(2)}%` } }
+      }
+    }
+  });
+
+  renderDonutLegend(shownOpps, oppColor, winShape, havePattern);
+}
+
+function renderDonutLegend(oppOrder, oppColor, winShape, havePattern){
+  const oppHtml = oppOrder.concat(["Other"]).map(o =>
+    `<span class="legitem"><span class="legswatch" style="background:${oppColor[o]}"></span>${o}</span>`).join("");
+  $("#oppLegend").innerHTML = `<span class="leglabel-strong">Opponent (color):</span>${oppHtml}`;
+
+  const winEl = $("#winLegend");
+  winEl.innerHTML = `<span class="leglabel-strong">Group E winner (texture):</span>`;
+  state.pEWin.forEach(([name]) => {
+    const item = document.createElement("span"); item.className = "legitem";
+    const cv = document.createElement("canvas"); cv.width = cv.height = 16; cv.className = "legcanvas";
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = havePattern ? pattern.draw(winShape[name], "#9aa7b4") : "#9aa7b4";
+    ctx.fillRect(0, 0, 16, 16);
+    item.appendChild(cv);
+    item.appendChild(document.createTextNode(name));
+    winEl.appendChild(item);
+  });
+}
+
+// ---- matrix (mosaic): width = winner %, height = opponent %, area = matchup % ----
+let matrixCells = [];
+let lastOppTeam = null;
+function contrastText(hex){
+  const h = hex.replace("#","");
+  const r = parseInt(h.substr(0,2),16), g = parseInt(h.substr(2,2),16), b = parseInt(h.substr(4,2),16);
+  return (0.299*r + 0.587*g + 0.114*b)/255 > 0.6 ? "#111" : "#fff";
+}
+
+function renderMatrix(oppTeam){
+  const canvas = document.getElementById("matrixChart");
+  if (!canvas) return;
+  const havePattern = (typeof pattern !== "undefined");
+  const {oppColor, winShape} = colorMaps(oppTeam);
+
+  // columns = Group E winners with prob>0, widths normalized to sum 1
+  const wins = state.pEWin.filter(([,p]) => p > 0);
+  const wsum = wins.reduce((s,[,p]) => s+p, 0) || 1;
+  const cols = wins.map(([name,p]) => ({name, frac: p/wsum}));
+
+  // rows = opponents; pool the tail (<MATRIX_MIN) into a single "Other" row
+  const sorted = Object.entries(oppTeam).filter(([,p]) => p > 0).sort((a,b)=>b[1]-a[1]);
+  const rowsData = sorted.filter(([,p]) => p >= MATRIX_MIN).map(([name,p]) => ({name, p}));
+  const tail = sorted.filter(([,p]) => p < MATRIX_MIN).reduce((s,[,p]) => s+p, 0);
+  if (tail > 0) rowsData.push({name:"Other", p: tail});
+  const rsum = rowsData.reduce((s,r) => s+r.p, 0) || 1;
+  const rows = rowsData.map(r => ({name: r.name, frac: r.p/rsum, p: r.p}));
+
+  // canvas sizing (HiDPI crisp)
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.parentElement.clientWidth || 600;
+  const cssH = 520;
+  canvas.width = cssW*dpr; canvas.height = cssH*dpr;
+  canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const mL=170, mT=58, mR=12, mB=14;
+  const pw = cssW - mL - mR, ph = cssH - mT - mB;
+  const border = cssVar("--bg") || "#111827";
+  const textc = cssVar("--text") || "#e6edf3";
+  const muted = cssVar("--muted") || "#9aa7b4";
+
+  // column x / row y extents
+  let x = mL; const colX = cols.map(c => { const w = c.frac*pw; const o = {x, w}; x += w; return o; });
+  let y = mT; const rowY = rows.map(r => { const h = r.frac*ph; const o = {y, h}; y += h; return o; });
+
+  matrixCells = [];
+  ctx.font = "12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+  ctx.textBaseline = "middle";
+
+  cols.forEach((c,ci) => {
+    rows.forEach((r,ri) => {
+      const X = colX[ci].x, W = colX[ci].w, Y = rowY[ri].y, H = rowY[ri].h;
+      const color = oppColor[r.name] || OTHER_COLOR;
+      ctx.fillStyle = (havePattern && r.name !== "Other") ? pattern.draw(winShape[c.name], color) : color;
+      ctx.fillRect(X,Y,W,H);
+      ctx.strokeStyle = border; ctx.lineWidth = 1.5; ctx.strokeRect(X,Y,W,H);
+      const prob = c.frac * r.frac;
+      matrixCells.push({X,Y,W,H, winner:c.name, opp:r.name, prob});
+      if (r.p >= 0.03){ // label every cell whose opponent row is >= 3%, regardless of cell size
+        ctx.font = "bold 12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+        const label = (prob*100).toFixed(1)+"%";
+        const cx = X+W/2, cy = Y+H/2;
+        const bw = ctx.measureText(label).width + 10, bh = 16;
+        ctx.fillStyle = color; // solid swatch (no texture) behind the number for legibility
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(cx-bw/2, cy-bh/2, bw, bh, 4);
+        else ctx.rect(cx-bw/2, cy-bh/2, bw, bh);
+        ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.textAlign = "center";
+        ctx.fillText(label, cx, cy);
+      }
+    });
+  });
+
+  // winner labels (top) + opponent labels (left)
+  ctx.font = "12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"; // back to non-bold for side labels
+  ctx.fillStyle = textc; ctx.textAlign = "center";
+  cols.forEach((c,ci) => {
+    const cx = colX[ci].x + colX[ci].w/2;
+    if (flagChar(c.name)) ctx.fillText(flagChar(c.name), cx, mT-40);
+    ctx.fillStyle = textc; ctx.fillText(c.name, cx, mT-25);
+    ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11);
+  });
+  ctx.textAlign = "right";
+  rows.forEach((r,ri) => {
+    if (rowY[ri].h >= 11){
+      const cy = rowY[ri].y + rowY[ri].h/2;
+      const pctTxt = (r.p*100).toFixed(0)+"%";
+      ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
+      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - ctx.measureText(pctTxt).width - 8, cy);
+    }
+  });
+  // axis captions
+  ctx.fillStyle = muted; ctx.textAlign = "left";
+  ctx.fillText("Group E winner →", mL, 14);
+}
+
+function matrixHover(ev){
+  const canvas = document.getElementById("matrixChart");
+  const tip = $("#matrixTip");
+  if (!canvas || !tip) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  const hit = matrixCells.find(c => mx>=c.X && mx<=c.X+c.W && my>=c.Y && my<=c.Y+c.H);
+  if (hit){
+    tip.style.display = "block";
+    tip.style.left = (ev.clientX + 12) + "px";
+    tip.style.top = (ev.clientY + 12) + "px";
+    tip.textContent = `${withFlag(hit.winner)} vs ${withFlag(hit.opp)}: ${(hit.prob*100).toFixed(2)}%`;
+  } else {
+    tip.style.display = "none";
+  }
+}
+
+// ---- detail tab: filterable table ----
+let lastJoint = [];
+function fillSelect(sel, items){
+  if (!sel) return;
+  const cur = sel.value || "__all";
+  sel.innerHTML = '<option value="__all">All</option>' + items.map(i => `<option value="${i}">${i}</option>`).join("");
+  sel.value = [...sel.options].some(o => o.value === cur) ? cur : "__all";
+}
+function renderTable(){
+  const w = $("#filterWinner").value, o = $("#filterOpp").value;
+  const rows = lastJoint.filter(([e,opp,p]) =>
+    p*100 >= 0.005 && (w === "__all" || e === w) && (o === "__all" || opp === o));
+  const total = rows.reduce((s,r) => s+r[2], 0);
+  $("#detailSummary").textContent = `${rows.length} matchups · total ${pct(total)}`;
+  $("#jointBody").innerHTML = rows.map(([e,opp,p]) =>
+    `<tr><td>${flag(e)}${e} <span class="slot">(1E)</span></td>` +
+    `<td>${flag(opp)}${opp} <span class="slot">(3${oppGroupOf(opp)})</span></td>` +
+    `<td class="pct">${pct(p)}</td></tr>`).join("");
+}
+
+function render({q, oppGroup, oppTeam, joint, warns}){
+  $("#warns").innerHTML = warns.length ? `<div class="warnbox">⚠ ${warns.join("\n")}</div>` : "";
+
+  bars($("#oppGroup"), Object.entries(oppGroup).sort((a,b)=>b[1]-a[1]).map(([g,p])=>["3"+g, p]));
+  bars($("#oppTeam"),  Object.entries(oppTeam).sort((a,b)=>b[1]-a[1]));
+
+  // renderDonut(joint, oppTeam); // donut disabled; matrix preferred (see commented HTML block)
+  lastOppTeam = oppTeam;
+  renderMatrix(oppTeam);
+
+  lastJoint = joint.slice().sort((a,b)=>b[2]-a[2]);
+  fillSelect($("#filterWinner"), state.pEWin.filter(([,p]) => p > 0).map(([n]) => n));
+  fillSelect($("#filterOpp"), Object.entries(oppTeam).filter(([,p]) => p > 0).sort((a,b)=>b[1]-a[1]).map(([o]) => o));
+  renderTable();
+
+  $("#qEff").innerHTML = GROUPS.map(g => `${g}: ${(q[g]*100).toFixed(0)}%`).join(" &nbsp;·&nbsp; ");
+}
+
+function flash(msg){
+  const el = $("#saveState"); const old = el.textContent;
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = old; }, 1800);
+}
+
+$("#shareBtn").addEventListener("click", async () => {
+  const url = shareURL();
+  try { await navigator.clipboard.writeText(url); flash("share link copied"); }
+  catch(e){ window.prompt("Copy this share link:", url); }
+});
+
+// matrix hover tooltip + redraw on resize
+(function(){
+  const canvas = document.getElementById("matrixChart");
+  if (canvas){
+    canvas.addEventListener("mousemove", matrixHover);
+    canvas.addEventListener("mouseleave", () => { const t = $("#matrixTip"); if (t) t.style.display = "none"; });
+  }
+  let rz;
+  window.addEventListener("resize", () => {
+    clearTimeout(rz);
+    rz = setTimeout(() => { if (lastOppTeam) renderMatrix(lastOppTeam); }, 150);
+  });
+})();
+
+// detail-tab slicers
+["filterWinner","filterOpp"].forEach(id => {
+  const el = $("#"+id); if (el) el.addEventListener("change", renderTable);
+});
+
+// tabs
+const TAB_KEY = "match74_tab_v5";
+function activateTab(name){
+  document.querySelectorAll(".tabbtn").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".tabpanel").forEach(p => p.hidden = (p.dataset.panel !== name));
+  try { localStorage.setItem(TAB_KEY, name); } catch(e){}
+  if (name === "matrix" && lastOppTeam) renderMatrix(lastOppTeam); // size canvas to the now-visible panel
+}
+document.querySelectorAll(".tabbtn").forEach(b => b.addEventListener("click", () => activateTab(b.dataset.tab)));
+
+loadState(); buildInputs(); compute();
+
+let startTab = "matrix"; try { startTab = localStorage.getItem(TAB_KEY) || "matrix"; } catch(e){}
+activateTab(startTab);
+</script>
+</body>
+</html>
