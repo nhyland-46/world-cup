@@ -520,7 +520,9 @@ function renderMatrix(oppTeam){
   // canvas sizing (HiDPI crisp)
   const dpr = window.devicePixelRatio || 1;
   const containerW = canvas.parentElement.clientWidth || 600;
-  const cssW = Math.max(containerW, 380); // 380 fits on most phones without forcing scroll
+  // on narrow screens: no left-margin labels; fit the canvas to the container so there's no horizontal scroll
+  const mobile = containerW < 480;
+  const cssW = mobile ? containerW : Math.max(containerW, 460);
   const cssH = 520;
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
@@ -528,8 +530,8 @@ function renderMatrix(oppTeam){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
 
-  // on narrow screens shrink the left margin so the matrix gets more room
-  const mL = containerW < 420 ? 140 : 170;
+  // mobile: no left margin (labels overlay inside rows); desktop: 170px left margin
+  const mL = mobile ? 0 : 170;
   const mT=58, mR=12, mB=14;
   const pw = cssW - mL - mR, ph = cssH - mT - mB;
   const border = cssVar("--bg") || "#111827";
@@ -570,8 +572,9 @@ function renderMatrix(oppTeam){
     });
   });
 
-  // winner labels (top) + opponent labels (left)
-  ctx.font = "12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"; // back to non-bold for side labels
+  // winner column labels (top)
+  const sysFont = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
+  ctx.font = `12px ${sysFont}`;
   ctx.fillStyle = textc; ctx.textAlign = "center";
   cols.forEach((c,ci) => {
     const cx = colX[ci].x + colX[ci].w/2;
@@ -580,24 +583,53 @@ function renderMatrix(oppTeam){
     ctx.fillStyle = textc; ctx.fillText(c.name, cx, mT-25, colMaxW);
     ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11, colMaxW);
   });
-  // clip row labels to the left margin so flag emoji never bleeds into matrix cells
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, mL - 2, cssH);
-  ctx.clip();
-  ctx.textAlign = "right";
-  rows.forEach((r,ri) => {
-    if (rowY[ri].h >= 11){
+
+  if (mobile) {
+    // Mobile: overlay team name + row % as a small pill inside the left edge of each row
+    rows.forEach((r,ri) => {
+      if (rowY[ri].h < 13) return;
       const cy = rowY[ri].y + rowY[ri].h/2;
-      const pctTxt = (r.p*100).toFixed(0)+"%";
+      const pctTxt = "  " + (r.p*100).toFixed(0) + "%";
+      ctx.font = `bold 11px ${sysFont}`;
+      const nameW = ctx.measureText(r.name).width;
+      ctx.font = `11px ${sysFont}`;
       const pctW = ctx.measureText(pctTxt).width;
-      const nameMaxW = mL - 8 - pctW - 20; // available width for the country name
-      ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
-      ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy, nameMaxW);
-    }
-  });
-  ctx.restore();
-  // axis captions
+      const pillW = nameW + pctW + 10;
+      const pillH = 15;
+      // semi-transparent dark pill so text is legible over any cell color
+      ctx.fillStyle = "rgba(0,0,0,0.45)";
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(6, cy - pillH/2, pillW, pillH, 4);
+      else ctx.rect(6, cy - pillH/2, pillW, pillH);
+      ctx.fill();
+      ctx.textAlign = "left";
+      ctx.font = `bold 11px ${sysFont}`;
+      ctx.fillStyle = "#fff";
+      ctx.fillText(r.name, 10, cy);
+      ctx.font = `11px ${sysFont}`;
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText(pctTxt, 10 + nameW, cy);
+    });
+  } else {
+    // Desktop: row labels in the left margin, clipped so emoji can't bleed into the matrix
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, mL - 2, cssH);
+    ctx.clip();
+    ctx.textAlign = "right";
+    rows.forEach((r,ri) => {
+      if (rowY[ri].h >= 11){
+        const cy = rowY[ri].y + rowY[ri].h/2;
+        const pctTxt = (r.p*100).toFixed(0)+"%";
+        const pctW = ctx.measureText(pctTxt).width;
+        const nameMaxW = mL - 8 - pctW - 20;
+        ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
+        ctx.fillStyle = textc; ctx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy, nameMaxW);
+      }
+    });
+    ctx.restore();
+  }
+  // axis caption
   ctx.fillStyle = muted; ctx.textAlign = "left";
   ctx.fillText("Group E winner →", mL, 14);
 }
