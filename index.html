@@ -78,7 +78,11 @@
   .leglabel-strong{ font-weight:700; color:var(--muted); margin-right:2px; }
   .topbar-actions{ float:right; display:flex; align-items:center; gap:8px; margin:2px 0 6px 16px; }
   .matrixwrap{ display:flex; align-items:flex-start; overflow-x:auto; }
-  #matrixRowLabels{ flex-shrink:0; display:block; }
+  #matrixRowLabels{ flex-shrink:0; display:flex; flex-direction:column; font-size:12px;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+  #matrixRowLabels .mlrow{ display:flex; align-items:center; justify-content:flex-end;
+    padding:0 8px; white-space:nowrap; overflow:hidden; }
+  #matrixChart{ flex:1; min-width:180px; display:block; }
   @media (max-width:600px){
     .wrap{ padding:16px 12px 48px; }
     h1{ font-size:19px; }
@@ -122,7 +126,7 @@
       <div class="small" style="margin-bottom:8px">Each box's area is the chance of that matchup.
         Columns are the Group E winner; rows are the opponent. Hover for exact values.</div>
       <div class="matrixwrap">
-        <canvas id="matrixRowLabels"></canvas>
+        <div id="matrixRowLabels"></div>
         <canvas id="matrixChart"></canvas>
       </div>
     </div>
@@ -521,59 +525,52 @@ function renderMatrix(oppTeam){
   const rsum = rowsData.reduce((s,r) => s+r.p, 0) || 1;
   const rows = rowsData.map(r => ({name: r.name, frac: r.p/rsum, p: r.p}));
 
-  const lcanvas = document.getElementById("matrixRowLabels");
+  const labelDiv = document.getElementById("matrixRowLabels");
   const dpr = window.devicePixelRatio || 1;
   const sysFont = "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif";
   const cssH = 520;
   const mT=58, mR=12, mB=14;
   const ph = cssH - mT - mB;
+  const textc = cssVar("--text") || "#e6edf3";
+  const muted = cssVar("--muted") || "#9aa7b4";
 
-  // --- Step 1: measure label widths to determine how wide the label canvas should be ---
-  // Use a temporary ctx on the matrix canvas just for measureText (canvas size doesn't matter here)
-  const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.font = `12px ${sysFont}`;
-  const FLAG_BUDGET = 20; // fixed budget for flag emoji (emoji widths unreliable on mobile)
-  let maxLabelW = 0;
-  rows.forEach(r => {
-    if (r.frac * ph < 11) return;
-    const pctTxt = (r.p * 100).toFixed(0) + "%";
-    const w = 4 + FLAG_BUDGET + ctx.measureText(r.name).width + 8 + ctx.measureText(pctTxt).width + 8;
-    if (w > maxLabelW) maxLabelW = w;
-  });
-  const mL = Math.max(Math.ceil(maxLabelW), 40);
+  // --- Step 1: build the label column as plain HTML ---
+  // The div auto-sizes to its content width — no canvas measurement needed.
+  if (labelDiv) {
+    labelDiv.style.height = cssH + "px";
+    labelDiv.innerHTML = "";
 
-  // --- Step 2: size and draw the label canvas ---
-  if (lcanvas) {
-    lcanvas.width = mL * dpr;
-    lcanvas.height = cssH * dpr;
-    lcanvas.style.width = mL + "px";
-    lcanvas.style.height = cssH + "px";
-    const lCtx = lcanvas.getContext("2d");
-    lCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    lCtx.clearRect(0, 0, mL, cssH);
-    lCtx.font = `12px ${sysFont}`;
-    lCtx.textBaseline = "middle";
-    lCtx.textAlign = "right";
-    const lTextc = cssVar("--text") || "#e6edf3";
-    const lMuted = cssVar("--muted") || "#9aa7b4";
-    // pre-compute rowY here using the same ph; rows haven't changed
-    let ly = mT;
-    const lRowY = rows.map(r => { const h = r.frac*ph; const o = {y:ly, h}; ly += h; return o; });
-    lRowY.forEach((ry, ri) => {
-      if (ry.h < 11) return;
-      const r = rows[ri];
-      const cy = ry.y + ry.h/2;
-      const pctTxt = (r.p*100).toFixed(0)+"%";
-      const pctW = lCtx.measureText(pctTxt).width;
-      lCtx.fillStyle = lMuted; lCtx.fillText(pctTxt, mL-8, cy);
-      lCtx.fillStyle = lTextc; lCtx.fillText(withFlag(r.name), mL-8 - pctW - 8, cy);
+    // spacer matching the top margin (mT) so row labels align with matrix rows
+    const topSpacer = document.createElement("div");
+    topSpacer.style.cssText = `height:${mT}px;flex-shrink:0`;
+    labelDiv.appendChild(topSpacer);
+
+    // flex column whose children share ph proportionally, matching canvas row heights
+    const rowWrap = document.createElement("div");
+    rowWrap.style.cssText = `flex:1;display:flex;flex-direction:column;height:${ph}px`;
+    rows.forEach(r => {
+      const div = document.createElement("div");
+      div.className = "mlrow";
+      div.style.flex = `${r.frac} 0 0`;
+      if (r.frac * ph >= 11) {
+        const flag = flagChar(r.name);
+        div.innerHTML = (flag ? `<span>${flag}</span>&nbsp;` : "") +
+          `<span style="color:${textc}">${r.name}</span>` +
+          `&nbsp;<span style="color:${muted}">${(r.p*100).toFixed(0)}%</span>`;
+      }
+      rowWrap.appendChild(div);
     });
+    labelDiv.appendChild(rowWrap);
+
+    const botSpacer = document.createElement("div");
+    botSpacer.style.cssText = `height:${mB}px;flex-shrink:0`;
+    labelDiv.appendChild(botSpacer);
   }
 
-  // --- Step 3: size and draw the matrix canvas (x starts at 0 — label canvas is a separate element) ---
-  const totalW = canvas.parentElement.clientWidth || 600;
-  const cssW = Math.max(totalW - mL, 200); // matrix takes the remaining width
+  // --- Step 2: let the browser lay out the label div, then read the canvas's remaining width ---
+  // Reading offsetWidth forces a synchronous reflow, giving us the exact flex-computed width.
+  canvas.style.width = ""; // clear any previous inline width so flex:1 can compute freely
+  const cssW = Math.max(canvas.offsetWidth, 180);
   canvas.width = cssW*dpr; canvas.height = cssH*dpr;
   canvas.style.width = cssW+"px"; canvas.style.height = cssH+"px";
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -581,8 +578,6 @@ function renderMatrix(oppTeam){
 
   const pw = cssW - mR;
   const border = cssVar("--bg") || "#111827";
-  const textc = cssVar("--text") || "#e6edf3";
-  const muted = cssVar("--muted") || "#9aa7b4";
 
   // matrix columns and rows start at x=0, y=mT in the matrix canvas
   let x = 0; const colX = cols.map(c => { const w = c.frac*pw; const o = {x, w}; x += w; return o; });
