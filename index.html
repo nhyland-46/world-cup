@@ -414,6 +414,16 @@ const FLAGS = {
   "United States":"🇺🇸", "Turkey":"🇹🇷", "Paraguay":"🇵🇾", "Australia":"🇦🇺",
   "Netherlands":"🇳🇱", "Japan":"🇯🇵", "Sweden":"🇸🇪", "Tunisia":"🇹🇳",
 };
+// 3-letter abbreviations for compact labels
+const ABBR = {
+  "Germany":"GER", "Ecuador":"ECU", "Ivory Coast":"CIV", "Curaçao":"CUW",
+  "Mexico":"MEX", "South Korea":"KOR", "South Africa":"RSA", "Czech Republic":"CZE",
+  "Canada":"CAN", "Switzerland":"SUI", "Qatar":"QAT", "Bosnia and Herzegovina":"BIH",
+  "Brazil":"BRA", "Morocco":"MAR", "Scotland":"SCO", "Haiti":"HAI",
+  "United States":"USA", "Turkey":"TUR", "Paraguay":"PAR", "Australia":"AUS",
+  "Netherlands":"NED", "Japan":"JPN", "Sweden":"SWE", "Tunisia":"TUN",
+};
+const abbr = t => ABBR[t] || t;
 const flag = t => FLAGS[t] ? `<span class="flag">${FLAGS[t]}</span>` : "";
 const withFlag = t => (FLAGS[t] ? FLAGS[t] + " " : "") + t; // plain text+emoji for canvas / tooltip
 const flagChar = t => FLAGS[t] || "";
@@ -555,7 +565,7 @@ function renderMatrix(oppTeam){
       if (r.frac * ph >= 11) {
         const flag = flagChar(r.name);
         div.innerHTML = (flag ? `<span>${flag}</span>&nbsp;` : "") +
-          `<span style="color:${textc}">${r.name}</span>` +
+          `<span style="color:${textc}">${abbr(r.name)}</span>` +
           `&nbsp;<span style="color:${muted}">${(r.p*100).toFixed(0)}%</span>`;
       }
       rowWrap.appendChild(div);
@@ -621,7 +631,7 @@ function renderMatrix(oppTeam){
     const cx = colX[ci].x + colX[ci].w/2;
     const colMaxW = Math.max(colX[ci].w - 4, 10);
     if (flagChar(c.name)) ctx.fillText(flagChar(c.name), cx, mT-40, colMaxW);
-    ctx.fillStyle = textc; ctx.fillText(c.name, cx, mT-25, colMaxW);
+    ctx.fillStyle = textc; ctx.fillText(abbr(c.name), cx, mT-25, colMaxW);
     ctx.fillStyle = muted; ctx.fillText((c.frac*100).toFixed(0)+"%", cx, mT-11, colMaxW);
   });
 
