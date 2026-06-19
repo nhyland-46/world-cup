@@ -614,7 +614,7 @@ function renderMatrix(oppTeam){
       const pctTxt = "";
       ctx.fillStyle = muted; ctx.fillText(pctTxt, mL-8, cy);
       const abbr = COUNTRY_ABBR[r.name] || r.name.substring(0, 3).toUpperCase();
-      ctx.fillText(withFlag(abbr), mL-8 - ctx.measureText(pctTxt).width - 8, cy);
+      ctx.fillText(flag(r.name) + abbr, mL-8 - ctx.measureText(pctTxt).width - 8, cy);
     }
   });
   // axis captions
