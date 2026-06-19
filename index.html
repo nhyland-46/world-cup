@@ -527,7 +527,11 @@ function renderMatrix(oppTeam){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
 
-  const mL=170, mT=58, mR=12, mB=14;
+  const isMobile = cssW < 600;
+  const mL = isMobile ? 75 : 170;
+  const mT = 58;
+  const mR = 12;
+  const mB = 14;
   const pw = cssW - mL - mR, ph = cssH - mT - mB;
   const border = cssVar("--bg") || "#111827";
   const textc = cssVar("--text") || "#e6edf3";
